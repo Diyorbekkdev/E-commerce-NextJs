@@ -5,13 +5,13 @@ import { getCookie } from "cookies-next";
 const initialState = {
   isAuth: getCookie(TOKEN) ? true : false,
   user: null,
-  cart: JSON.parse(localStorage.getItem('cart')) || [],
+  cart: JSON.parse(typeof window !== 'undefined' ? localStorage.getItem('cart') : null) || [],
 };
 
 export const authSlice = createSlice({
   name: "auth",
   initialState,
-  reducers: {
+  reducers: { 
     setAuth: (state) => {
       state.isAuth = !state.isAuth;
     },
