@@ -2,33 +2,53 @@
 
 import Search from "antd/es/input/Search";
 import { useParams } from "next/navigation";
-import './categoryProdcuts.scss'
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { Button } from "antd";
+import { Button, Spin, message, notification  } from "antd";
 import { request } from "@/server/request";
+import { useDispatch, useSelector } from "react-redux";
+import { addToCart } from "@/redux/slice/authSlice";
+
+import "./categoryProdcuts.scss";
+import Link from "next/link";
 export default function CategoryPage() {
+  const { isAuth, cart } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
   const { categoryId } = useParams();
-  const onSearch = (value) => console.log(value);
   const [search, setSearch] = useState("");
-  const [categoryProdcuts, setCategoryProducts] = useState({ total: 0, products: [] })
+  const [categoryProdcuts, setCategoryProducts] = useState({
+    total: 0,
+    products: [],
+  });
+
+  const [loading, setLoading] = useState(false);
   const getProducts = async ({ categoryId, search }) => {
+    console.log(search);
     try {
-      const { data } = await request(
-        `product?category=${categoryId}`
-      );
+      setLoading(true);
+      const { data } = await request(`product?category=${categoryId}&search=${search}`);
       setCategoryProducts(data);
+      setLoading(false);
     } catch (err) {
-      console.log(err);
+      message.error(err.response ? err.response.data.msg : "Timeout");
+      message.error("Oops! Something went wrong.", err);
     }
   };
 
   useEffect(() => {
     getProducts({ categoryId, search });
-  }, [search, categoryId]);
+  }, [search,categoryId]);
+
+  const addItemToCart = (product) => {
+    if (isAuth) {
+      dispatch(addToCart(product));
+      message.success('Product added to cart!');
+    } else {
+      message.warning('Please log in to add items to your cart.');
+    }
+  };
 
 
-  console.log(categoryProdcuts.products);
   return (
     <main>
       <section className="products">
@@ -36,16 +56,20 @@ export default function CategoryPage() {
           <div className="searching__box pt-36">
             <Search
               placeholder="input search text"
-              style={{ width: '35%' }}
-              onSearch={(value) => console.log(value)}
+              style={{ width: "35%" }}
+              onChange={(e) => setSearch(e.target.value)}
             />
-
           </div>
 
-            <div className="category_products mt-10 p-10 grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {categoryProdcuts?.products?.map((res)=> (
+          <div className={`category_products mt-10 p-10 ${loading ? "" : "grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"}`}>
+            {loading ? (
+              <div className="w-full flex justify-center  text-center h-10 m-auto">
+                <Spin size="large" />
+              </div>
+            ) : (
+              categoryProdcuts?.products?.map((res) => (
                 <div className="product_card" key={res?._id}>
-                <Image
+                  <Image
                     src={res?.image?.url}
                     alt="product img"
                     width={200}
@@ -58,14 +82,23 @@ export default function CategoryPage() {
                     }}
                   />
                   <div className="category_products_row p-4">
-                      <p className="text-white mb-1"><span className="font-bold">Name:</span> {res?.title}</p>
-                      <p className="text-white mb-1"><span className="font-bold">Price:</span> {res?.price} UZS</p>
-                      <p className="text-white mb-1"><span className="font-bold">Amount:</span> {res?.sold}</p>
-                      <Button type="primary" className="bg-cyan-500">Add to Cart</Button>
+                    <p className="text-white mb-1">
+                      <span className="font-bold">Name:</span> <Link href={`card/${res?._id}`}>{res?.title}</Link> 
+                    </p>
+                    <p className="text-white mb-1">
+                      <span className="font-bold">Price:</span> {res?.price} UZS
+                    </p>
+                    <p className="text-white mb-1">
+                      <span className="font-bold">Amount:</span> {res?.sold}
+                    </p>
+                    <Button type="primary" className="bg-cyan-500" onClick={() => addItemToCart(res)}>
+                      Add to Cart
+                    </Button>
                   </div>
                 </div>
-              ))}
-            </div>
+              ))
+            )}
+          </div>
         </div>
       </section>
     </main>

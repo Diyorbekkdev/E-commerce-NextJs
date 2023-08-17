@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import "./category.scss";
+
 const Category = ({ categories }) => {
   return (
     <Fragment>
